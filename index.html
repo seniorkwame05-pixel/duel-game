@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multiplayer Duel</title>
+  <style>
+    body { font-family: Arial; text-align:center; background:#0f172a; color:white; }
+    input, button { padding:10px; margin:5px; }
+    .box { margin:20px; padding:20px; background:#1e293b; border-radius:10px; }
+  </style>
+</head>
+
+<body>
+
+<h1>🎯 Multiplayer Duel App</h1>
+
+<!-- 👤 LOGIN -->
+<div id="login" class="box">
+  <input id="name" placeholder="Enter name">
+  <button onclick="start()">Play</button>
+</div>
+
+<!-- 📊 STATS -->
+<div id="stats" class="box"></div>
+
+<!-- ⏳ STATUS -->
+<div id="status"></div>
+
+<!-- 👥 MATCH -->
+<div id="match" class="box" style="display:none;"></div>
+
+<!-- 🔐 SETUP -->
+<div id="setup" class="box" style="display:none;">
+  <input id="secret" type="password" placeholder="Secret number">
+  <button onclick="setSecret()">Submit</button>
+</div>
+
+<!-- 🎮 GAME -->
+<div id="game" class="box" style="display:none;">
+  <h2 id="round"></h2>
+  <input id="guess" placeholder="Guess">
+  <button onclick="guess()">Guess</button>
+  <p id="result"></p>
+</div>
+
+<!-- 🏁 END -->
+<div id="end" class="box" style="display:none;">
+  <h2 id="final"></h2>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+function start() {
+  const name = document.getElementById("name").value;
+  socket.emit("setName", name);
+
+  document.getElementById("login").style.display = "none";
+}
+
+socket.on("status", msg => {
+  document.getElementById("status").innerText = msg;
+});
+
+socket.on("stats", s => {
+  document.getElementById("stats").innerText =
+    `🏆 Wins: ${s.wins} | ❌ Losses: ${s.losses}`;
+});
+
+socket.on("matched", data => {
+  document.getElementById("match").style.display = "block";
+  document.getElementById("match").innerText =
+    "Matched with: " + data.players.map(p => p.name).join(" vs ");
+});
+
+socket.on("startSetup", () => {
+  document.getElementById("setup").style.display = "block";
+});
+
+function setSecret() {
+  const secret = parseInt(document.getElementById("secret").value);
+  socket.emit("setSecret", { secret });
+}
+
+socket.on("startGame", round => {
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("game").style.display = "block";
+  document.getElementById("round").innerText = "Round " + round;
+});
+
+function guess() {
+  const g = parseInt(document.getElementById("guess").value);
+  socket.emit("guess", g);
+}
+
+socket.on("result", msg => {
+  document.getElementById("result").innerText = msg;
+});
+
+socket.on("nextRound", r => {
+  document.getElementById("round").innerText = "Round " + r;
+  document.getElementById("result").innerText = "";
+});
+
+socket.on("gameOver", msg => {
+  document.getElementById("game").style.display = "none";
+  document.getElementById("end").style.display = "block";
+  document.getElementById("final").innerText = msg;
+});
+</script>
+
+</body>
+</html>
